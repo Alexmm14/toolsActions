@@ -1,0 +1,23 @@
+name: 'Dynamic Webhook Sender'
+description: 'Envía cualquier JSON a cualquier endpoint'
+
+inputs:
+  endpoint:
+    description: 'URL del webhook'
+    required: true
+  json_body:
+    description: 'El objeto JSON completo en formato string'
+    required: true
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Send Payload
+      shell: bash
+      env:
+        # Al pasarlo por env, evitamos problemas de escape de comillas en bash
+        PAYLOAD: ${{ inputs.json_body }}
+      run: |
+        curl --location '${{ inputs.endpoint }}' \
+        --header 'Content-Type: application/json' \
+        --data "$PAYLOAD"
