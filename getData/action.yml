@@ -1,0 +1,53 @@
+name: 'Extraer Variables de Git'
+description: 'Obtiene metadatos del commit y el repositorio'
+
+inputs:
+  docker_digest:
+    description: 'El digest de la imagen Docker (opcional)'
+    required: false
+    default: ''
+
+outputs:
+  pr_header:
+    description: "Header del Pull Request"
+    value: ${{ steps.vars.outputs.pr_header }}
+  author:
+    description: "Autor del commit"
+    value: ${{ steps.vars.outputs.author }}
+  branch:
+    description: "Nombre de la rama"
+    value: ${{ steps.vars.outputs.branch }}
+  hash:
+    description: "Digest de la imagen"
+    value: ${{ steps.vars.outputs.hash }}
+  project_name:
+    description: "Nombre del proyecto"
+    value: ${{ steps.vars.outputs.project_name }}
+  full_msg:
+    description: "Mensaje completo del commit"
+    value: ${{ steps.vars.outputs.full_msg }}
+
+runs:
+  using: 'composite'
+  steps:
+    - id: vars
+      shell: bash
+      run: |
+        # Obtenemos los valores de forma silenciosa
+        HASH_IMAGE="${{ inputs.docker_digest }}"
+        FULL_MSG=$(git log -1 --format='%s')
+        AUTHOR_INFO=$(git log -1 --format='%an <%ae>')
+        BRANCH_NAME="${FULL_MSG##*/}"
+        PR_HEADER=$(echo "$FULL_MSG" | sed -E 's/(Merge pull request #[0-9]+).*/\1/')
+
+        # Obtenemos el nombre del proyecto
+        LOWERCASE_REPO=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+        PROJECT_NAME=$(echo "${LOWERCASE_REPO}" | cut -d'/' -f2)
+
+        # Guardamos en GITHUB_OUTPUT
+        echo "pr_header=$PR_HEADER" >> "$GITHUB_OUTPUT"
+        echo "author=$AUTHOR_INFO" >> "$GITHUB_OUTPUT"
+        echo "branch=$BRANCH_NAME" >> "$GITHUB_OUTPUT"
+        echo "hash=$HASH_IMAGE" >> "$GITHUB_OUTPUT"
+        echo "project_name=$PROJECT_NAME" >> "$GITHUB_OUTPUT"
+        echo "full_msg=$FULL_MSG" >> "$GITHUB_OUTPUT"
